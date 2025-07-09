@@ -206,5 +206,10 @@ namespace eval ::osvvm {
     if {![info exists RemoveUnmappedLibraries]} {
       variable RemoveUnmappedLibraries    "true"
     }
-  
+
+  #
+  # Allow reporting to be turned off entirely
+    if {![info exists GenerateReports]} {
+      variable GenerateReports    "true"
+    }
 }

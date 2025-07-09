@@ -392,33 +392,39 @@ proc build {{Path_Or_File "."} args} {
       set BuildErrorCode [catch {LocalBuild $IncludeFile {*}$args} BuildErrMsg]
       set LocalBuildErrorInfo $::errorInfo
       
+      if {$::osvvm::GenerateReports} {
+        set ReportYamlErrorCode [catch {FinishBuildYaml $BuildName} BuildYamlErrMsg]
+        set LocalBuildYamlErrorInfo $::errorInfo
 
-      set ReportYamlErrorCode [catch {FinishBuildYaml $BuildName} BuildYamlErrMsg]
-      set LocalBuildYamlErrorInfo $::errorInfo
+        set BuildStarted "false"
+        
+        # Try to create reports, even if the build failed
+        set ReportErrorCode [catch {AfterBuildReports $BuildName} ReportsErrMsg]
+        set LocalReportErrorInfo $::errorInfo
 
-      set BuildStarted "false"
-      
-      # Try to create reports, even if the build failed
-      set ReportErrorCode [catch {AfterBuildReports $BuildName} ReportsErrMsg]
-      set LocalReportErrorInfo $::errorInfo
+        StopTranscript ${BuildName}
+        
+        # Cannot generate html log files until transcript is closed - previous step
+        set Log2ErrorCode [catch {Log2Osvvm $::osvvm::TranscriptFileName} ReportsErrMsg]
+        set Log2ErrorInfo $::errorInfo
+        
+        # Move directory to BuildName
+        set TargetDirectory [file join ${::osvvm::OutputBaseDirectory} ${BuildName}]
+        if {[file exists $TargetDirectory]} {
+          puts "New TargetDirectory matches old one. Deleting old $TargetDirectory "
+          file delete -force $TargetDirectory
+        }
+        file rename -force ${::osvvm::OutputHomeDirectory} $TargetDirectory
 
-      StopTranscript ${BuildName}
-      
-      # Cannot generate html log files until transcript is closed - previous step
-      set Log2ErrorCode [catch {Log2Osvvm $::osvvm::TranscriptFileName} ReportsErrMsg]
-      set Log2ErrorInfo $::errorInfo
-      
-      # Move directory to BuildName
-      set TargetDirectory [file join ${::osvvm::OutputBaseDirectory} ${BuildName}]
-      if {[file exists $TargetDirectory]} {
-        puts "New TargetDirectory matches old one. Deleting old $TargetDirectory "
-        file delete -force $TargetDirectory
+        WriteIndexYaml $BuildName
+        Index2Html
+        # IndexToHtml 
+      } else {
+        # Reporting bypassed 
+        set ReportErrorCode 0
+        set ReportYamlErrorCode 0
+        set Log2ErrorCode 0
       }
-      file rename -force ${::osvvm::OutputHomeDirectory} $TargetDirectory
-
-      WriteIndexYaml $BuildName
-      Index2Html
-      # IndexToHtml 
 
       set BuildName ""
 

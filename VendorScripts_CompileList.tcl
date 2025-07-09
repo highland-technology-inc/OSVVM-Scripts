@@ -45,7 +45,7 @@
 #
 # Load the tool vendor base files so we get the files it compiles
 #
-#  variable ScriptBaseName $::env(OSVVM_TOOL2)
+#  variable ScriptBaseName $::env(OSVVM_TOOL)
 #  source ${::osvvm::OsvvmScriptDirectory}/VendorScripts_${::osvvm::ScriptBaseName}.tcl
   
  #
@@ -55,6 +55,18 @@
 
 namespace eval ::osvvm {
 
+  variable ToolName CompileList
+  variable ToolNameVersion ${ToolName}
+  variable GenerateReports "false"
+
+  # Default CSV file is allfiles.csv.  This can be
+  # overridden by the CSVFILE environment variable
+  # if present at StartUp.
+  if {[info exists ::env(CSVFILE)]} {
+    variable CsvFile $::env(CSVFILE) 
+  } else {
+    variable CsvFile allfiles.csv
+  }
 
 # -------------------------------------------------
 # StartTranscript / StopTranscpript
@@ -101,16 +113,23 @@ proc vendor_UnlinkLibrary {LibraryName PathToLib} {}
 # -------------------------------------------------
 # analyze
 #
-proc vendor_analyze_vhdl {LibraryName FileName args} {
+
+proc afile {LibraryName FileName args} {
   set ListOfLibraryFiles  [open ${LibraryName}_${::osvvm::ToolName}.files a]
   puts $ListOfLibraryFiles $FileName
   close $ListOfLibraryFiles
+
+  set ListCsvFile [open ${::osvvm::CsvFile} a]
+  puts $ListCsvFile "${LibraryName},$FileName"
+  close $ListCsvFile
+}
+
+proc vendor_analyze_vhdl {LibraryName FileName args} {
+  afile $LibraryName $FileName {*}$args
 }
 
 proc vendor_analyze_verilog {LibraryName FileName args} {
-  set ListOfLibraryFiles  [open ${LibraryName}_${::osvvm::ToolName}.files a]
-  puts $ListOfLibraryFiles $FileName
-  close $ListOfLibraryFiles
+  afile $LibraryName $FileName {*}$args
 }
 
 # -------------------------------------------------
